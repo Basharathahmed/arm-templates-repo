@@ -1,0 +1,228 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {   
+    "adminpassword": {
+      "type": "securestring"
+    },
+        
+    "object-id": {
+      "type": "securestring"
+    },
+    
+    "storageAccountName": {
+        "type": "string",
+        "metadata": {
+            "description": "project055."
+        }
+  }
+  },
+  "functions": [],
+  "variables": {
+    "storageAccountName": "project066",
+    "blobContainerName": "blob02",
+    "vmName": "ahmed090",
+    "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+    "vmId": "[resourceId('Microsoft.Compute/virtualMachines', variables('vmName'))]",
+    "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+    "managedidentityId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'identity')]"
+  },
+  "resources": [
+    {
+      "name": "identity",
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "location": "[resourceGroup().location]"
+    },
+    {
+      "name": "pubipaddress",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "pubipaddress"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[toLower('ahmedvm01')]"
+        }
+      }
+    },
+    {
+      "name": "netsec",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "rule1",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "vnnetwork",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'netsec')]"
+      ],
+      "tags": {
+        "displayName": "vnnetwork"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "vnnetwork01",
+            "properties": {
+              "addressPrefix": "10.0.0.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'netsec')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "networksec",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'pubipaddress')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnnetwork')]"
+      ],
+      "tags": {
+        "displayName": "networksec"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipConfig2",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'pubipaddress')]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnnetwork', 'vnnetwork01')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ahmed066",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-03-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'networksec')]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'identity')]"
+      ],
+      "tags": {
+        "displayName": "virtualvm"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_A2_v2"
+        },
+        "osProfile": {
+          "computerName": "ahmed066",
+          "adminUsername": "ahmed088",
+          "adminPassword": "[parameters('adminpassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "16.04-LTS",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "vm1osdisk",
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'networksec')]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      }
+    },
+    {
+      "name": "[variables('storageAccountName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "tags": {
+        "displayName": "project066"
+      },
+      "location": "[resourceGroup().location]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "Premium_LRS",
+        "tier": "Premium"
+      }
+    },
+    {
+      "name": "project066/default/blob02",
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'project066')]"
+      ],
+      "properties": {
+        "publicAccess": "None"
+      }
+    },
+    {  
+      "name":  "[guid('ahmed066-roleAssignment')]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-04-01-preview",
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines','ahmed066')]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+         "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]", //ba92f5b4-2d11-453d-a403-e96b0029c9fe
+            "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines', 'ahmed066'), '2023-03-01', 'Full').identity.principalId]"
+       //"scope": "[resourceId('Microsoft.Storage/storageAccounts',  parameters('storageAccountName'))]"
+      }
+    }
+  ],
+  "outputs": {}
+}
+  

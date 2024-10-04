@@ -1,0 +1,281 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "principalId": {
+      "type": "string",
+      "metadata": {
+        "description": "The Principal ID to assign the role."
+      }
+    },
+    "roleDefinitionId": {
+      "type": "string",
+      "metadata": {
+        "description": "The ID of the role definition."
+      }
+    },
+    "username": {
+      "type": "string",
+      "metadata": {
+        "description": "The username to store in Key Vault."
+      }
+    },
+    "password": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password to store in Key Vault."
+      }
+    }
+  },
+  "resources": [
+    {
+      "name": "basharathkey01",
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-02-01",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "basharathkey01"
+      },
+      "properties": {
+        "enabledForDeployment": true,
+        "enabledForTemplateDeployment": true,
+        "enabledForDiskEncryption": true,
+        "tenantId": "f5f02767-508e-4b78-bc05-2b16c8a081a1",
+        "accessPolicies": [
+          {
+            "tenantId": "f5f02767-508e-4b78-bc05-2b16c8a081a1",
+            "objectId": "[parameters('principalId')]",
+            "permissions": {
+              "keys": [
+                "Get"
+              ],
+              "secrets": [
+                "List",
+                "Get",
+                "Set"
+              ]
+            }
+          }
+        ],
+        "sku": {
+          "name": "standard",
+          "family": "A"
+        }
+      },
+      "resources": [
+        {
+          "name": "keyVaultSecret1-username",
+          "type": "Microsoft.KeyVault/vaults/secrets",
+          "apiVersion": "2023-02-01",
+          "dependsOn": [
+            "[resourceId('Microsoft.KeyVault/vaults', 'basharathkey01')]"
+          ],
+          "properties": {
+            "value": "basharath090"
+          }
+        },
+        {
+          "name": "keyVaultSecret1-password",
+          "type": "Microsoft.KeyVault/vaults/secrets",
+          "apiVersion": "2023-02-01",
+          "dependsOn": [
+            "[resourceId('Microsoft.KeyVault/vaults', 'basharathkey01')]"
+          ],
+          "properties": {
+            "value": "protect@#123"
+          }
+        }
+      ]
+    },
+    {
+      "name": "managedidentity1",
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "location": "[resourceGroup().location]"
+    },
+    {
+      "name": "ubuntuVM1-PublicIP",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "PublicIPAddress"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[toLower('ahmedvm01')]"
+        }
+      }
+    },
+    {
+      "name": "basharath010",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "nsgRule1",
+            "properties": {
+              "description": "description",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    { 
+      "name": "ahmed010",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'basharath010')]"
+      ],
+      "tags": {
+        "displayName": "ubuntuVM1-VirtualNetwork"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "ahmed010-Subnet",
+            "properties": {
+              "addressPrefix": "10.0.0.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'basharath010')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ubuntuVM1-NetworkInterface",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-04-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'ubuntuVM1-PublicIP')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'ahmed010')]"
+      ],
+      "tags": {
+        "displayName": "ubuntuVM1-NetworkInterface"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipConfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'ubuntuVM1-PublicIP')]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'ahmed010', 'ahmed010-Subnet')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ahmed090",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2023-03-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'ubuntuVM1-NetworkInterface')]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'managedidentity1')]"
+      ],
+      "tags": {
+        "displayName": "ubuntuVM1"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_A2_v2"
+        },
+        "osProfile": {
+          "computerName": "mohammed09",
+          "adminUsername": "ahmed099",
+          "adminPassword": "mohammed@090"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "16.04-LTS",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "ubuntuVM1-OSDisk",
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'ubuntuVM1-NetworkInterface')]"
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      }
+    },
+    {
+      "name": "samplestorage1",
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "tags": {
+        "displayName": "storageaccount1"
+      },
+      "location": "[resourceGroup().location]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "Premium_LRS",
+        "tier": "Premium"
+      }
+    },
+    {
+      "name": "samplestorage1/default/blobContainerName",
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'samplestorage1')]"
+      ],
+      "properties": {
+        "publicAccess": "None"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2020-10-01-preview",
+      "name": "[guid(subscription().subscriptionId, parameters('principalId'), parameters('roleDefinitionId'))]",
+      "properties": {
+        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+        "principalId": "[reference(resourceId('Microsoft.Compute/virtualMachines','sample-vm-01'),'2023-03-01','Full').identity.principalId]"
+        //"principalType": "User"
+      }
+    }
+  ]
+}

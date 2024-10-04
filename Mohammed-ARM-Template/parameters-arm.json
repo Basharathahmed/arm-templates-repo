@@ -1,0 +1,22 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminpassword":{
+            "reference": {
+        "keyVault": {
+          "id": "/subscriptions/82c579f8-0ab8-43ec-8c87-eca2d5f2c821/resourceGroups/keyprotect/providers/Microsoft.KeyVault/vaults/protecting1"
+        },
+        "secretName": "protection1"
+      }
+        },
+        "object-id":{
+            "reference": {
+                "keyVault": {
+                "id": "/subscriptions/82c579f8-0ab8-43ec-8c87-eca2d5f2c821/resourceGroups/keyprotect/providers/Microsoft.KeyVault/vaults/protecting1"
+        },
+                "secretName": "object-id"
+              }
+        }
+    }
+}

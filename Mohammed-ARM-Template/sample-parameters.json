@@ -1,0 +1,55 @@
+{
+    "sas-token": {
+        "reference": {
+            "keyVault": {
+              "id": "/subscriptions/82c579f8-0ab8-43ec-8c87-eca2d5f2c821/resourceGroups/key-sec/providers/Microsoft.KeyVault/vaults/protection0123"
+            },
+            "secretName": "sas-token"
+        }
+    },
+    "roleDefinitionName":{
+        "value": "Reader"
+
+    },
+    "publicIpName": {
+        "value": "myPublicIP"
+    },
+    "location": {
+        "value": "eastus"
+    },
+    "publicIpSku": {
+        "value": "Standard"
+    },
+    "publicIPAllocationMethod": {
+        "value": "Static"
+    },
+    "dnsLabelPrefix": {
+        "value": "mydnslabe757"
+    },
+    "vmName": {
+        "value": "myVM"
+    },
+    "vmSize": {
+        "value": "Standard_DS1_v2"
+    },
+    "adminUsername": {
+        "value": "azureuser"
+    },
+    "adminPassword": {
+        
+        "reference": {
+            "keyVault": {
+              "id": "/subscriptions/82c579f8-0ab8-43ec-8c87-eca2d5f2c821/resourceGroups/key-sec/providers/Microsoft.KeyVault/vaults/protection0123"
+            },
+            "secretName": "vm-password"
+        }
+    },
+    "OSVersion": {
+        "value": "2019-Datacenter"
+    },
+    "securityType": {
+        "value": "TrustedLaunch"
+    }
+   
+}
+
